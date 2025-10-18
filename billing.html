@@ -1,0 +1,750 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Brothers Kitchen Billing Software</title>
+<style>
+:root{
+  --maxw:1000px;
+  --accent:#03B0ED;
+  --muted:#666;
+  --bg:#f7f7f9;
+  --card:#fff;
+  --radius:12px;
+}
+*{box-sizing:border-box;font-family:Inter,Segoe UI,Roboto,Arial}
+html,body{height:100%;margin:0;background:var(--bg);color:#222}
+.wrap{max-width:var(--maxw);margin:28px auto;padding:22px;display:flex;flex-direction:column;gap:18px}
+header{display:flex;align-items:center;gap:16px;justify-content:space-between}
+.brand{display:flex;align-items:center;gap:12px}
+.logo{width:72px;height:72px;border-radius:8px;background:#eee;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.logo img{width:100%;height:100%;object-fit:cover}
+.brand h1{margin:0;font-size:20px;letter-spacing:0.4px}
+.brand p{margin:0;color:var(--muted);font-size:13px}
+nav{display:flex;gap:8px;flex-wrap:wrap}
+nav button{background:transparent;border:1px solid transparent;padding:8px 12px;border-radius:8px;cursor:pointer}
+nav button.active{background:var(--accent);color:#fff}
+.card{background:var(--card);padding:16px;border-radius:var(--radius);box-shadow:0 6px 18px rgba(20,20,40,0.06)}
+.center{margin:0 auto;max-width:980px}
+.page{display:none}
+.page.active{display:block}
+h2{margin:0 0 12px 0}
+table{width:100%;border-collapse:collapse}
+th,td{padding:8px 10px;border:1px solid #eee;text-align:left;font-size:14px}
+.controls{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.btn{background:var(--accent);color:#fff;padding:8px 12px;border-radius:8px;border:none;cursor:pointer}
+.btn.ghost{background:transparent;color:var(--accent);border:1px solid var(--accent)}
+.small{font-size:13px;padding:6px 8px;border-radius:8px}
+.form-inline{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.input,select,textarea{padding:8px 10px;border-radius:8px;border:1px solid #ddd;font-size:14px}
+.box{padding:12px;border-radius:10px;border:1px dashed #eee;margin-bottom:14px;background:#fafafa}
+.right{text-align:right}
+.muted{color:var(--muted);font-size:13px}
+.logo-uploader{display:flex;flex-direction:column;gap:6px}
+.row-actions{display:flex;gap:6px}
+.bill-area{max-width:740px;margin:10px auto;padding:18px;border-radius:10px;background:#fff}
+.bill-top{text-align:center;margin-bottom:8px}
+.bill-top h3{margin:6px 0}
+.print-hide{display:inline-block}
+.note{font-size:13px;color:var(--muted);margin-top:8px}
+@media (max-width:760px){
+  .form-inline{flex-direction:column}
+  nav{justify-content:center}
+}
+@media print {
+  body{background:#fff}
+  .wrap{box-shadow:none;padding:0;margin:0}
+  nav, .print-hide, header, .controls{display:none !important}
+  .card{box-shadow:none;border-radius:0;padding:0}
+  @page { size: A5 portrait; margin: 10mm; }
+  .bill-area{box-shadow:none;border-radius:0;padding:0}
+}
+</style>
+</head>
+<body>
+<div class="wrap card">
+<header>
+  <div class="brand">
+    <div class="logo" id="logoBox">
+      <img id="logoImg" src="" alt="logo" style="display:none">
+      <span id="logoFallback" style="font-weight:700;color:#999">LOGO</span>
+    </div>
+    <div>
+      <h1 contenteditable="true" id="shopName">Brothers Kitchen</h1>
+      <p>Phone: 7550229258 • Address: No.1, Sivaguru Street, Vasantham Nagar, Avadi, Chennai-71</p>
+    </div>
+  </div>
+  <div style="display:flex;gap:12px;align-items:center">
+    <nav>
+      <button class="tab-btn active" data-target="itemsPage">Items</button>
+      <button class="tab-btn" data-target="customersPage">Customers</button>
+      <button class="tab-btn" data-target="billPage">Bill</button>
+      <button class="tab-btn" data-target="reportsPage">Reports</button>
+    </nav>
+    <div class="logo-uploader">
+      <input type="file" id="logoUpload" accept="image/*" style="display:none">
+      <button class="small" id="logoBtn">Upload Logo</button>
+    </div>
+  </div>
+</header>
+
+<!-- ITEMS PAGE -->
+<section id="itemsPage" class="page active card">
+  <h2>Items</h2>
+  <div class="controls">
+    <input type="text" id="itemSearch" class="input" placeholder="Search item...">
+    <button class="btn" id="addItemBtn">Add Item</button>
+    <button class="btn ghost" id="clearItems">Clear All Items</button>
+  </div>
+  <div class="box">
+    <table id="itemsTable">
+      <thead>
+        <tr><th>#</th><th>Item Name</th><th>Category</th><th>Price (₹)</th><th>Actions</th></tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+</section>
+
+<!-- CUSTOMERS PAGE -->
+<section id="customersPage" class="page card">
+  <h2>Customers</h2>
+  <div class="controls">
+    <input type="text" id="custSearch" class="input" placeholder="Search customer...">
+    <button class="btn" id="addCustBtn">Add Customer</button>
+    <button class="btn ghost" id="clearCustomers">Clear All Customers</button>
+  </div>
+  <div class="box">
+    <table id="customersTable">
+      <thead>
+        <tr><th>#</th><th>Name</th><th>Shop</th><th>Phone</th><th>Address</th><th>Total Received</th><th>Due</th><th>Actions</th></tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+</section>
+
+<!-- BILL PAGE -->
+<section id="billPage" class="page card">
+  <h2>Create Bill</h2>
+  <div class="box">
+    <div class="form-inline">
+      <div style="flex:1;">
+        <label class="muted">Select Customer</label><br>
+        <select id="billCustomer" class="input"></select>
+      </div>
+      <div style="width:160px">
+        <label class="muted">Bill No.</label>
+        <input id="billNo" class="input" readonly>
+      </div>
+      <div style="width:160px">
+        <label class="muted">Date</label>
+        <input id="billDate" class="input" readonly>
+      </div>
+    </div>
+
+    <div style="margin-top:12px">
+      <table id="billTable">
+        <thead>
+          <tr><th>#</th><th>Item</th><th>Qty</th><th>Rate (₹)</th><th>Total (₹)</th><th>Actions</th></tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+      <div style="margin-top:8px;text-align:right">
+        <button class="small" id="addBillRow">Add Row</button>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:12px;justify-content:flex-end;margin-top:12px;align-items:center">
+      <div style="width:320px">
+        <div class="form-inline">
+          <label class="muted">Subtotal:</label>
+          <input id="subtotal" class="input" readonly style="flex:1;">
+        </div>
+        <div class="form-inline" style="margin-top:6px">
+          <label class="muted">Discount (₹):</label>
+          <input id="discount" class="input" type="number" value="0" min="0" style="flex:1;">
+        </div>
+        <div class="form-inline" style="margin-top:6px">
+          <label class="muted">Net Amount:</label>
+            <input id="netAmount" class="input" readonly style="flex:1;">
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-top:12px;display:flex;gap:8px;justify-content:flex-end">
+        <button class="btn" id="saveBill">Save Bill</button>
+        <button class="btn" id="printBill">Print / Save PDF (A5)</button>
+        <button class="btn ghost" id="clearBill">Clear Form</button>
+      </div>
+    </div>
+
+    <div class="note">Note: The header (shop name, phone, address) is editable directly. Use logo upload to add your logo.</div>
+  </section>
+
+  <!-- REPORTS PAGE -->
+  <section id="reportsPage" class="page card">
+    <h2>Reports</h2>
+    <div class="controls">
+      <input type="date" id="reportDate" class="input">
+      <button class="btn" id="runDaily">Run Daily Report</button>
+      <select id="reportMonth" class="input">
+        <option value="">Select month</option>
+      </select>
+      <button class="btn" id="runMonthly">Run Monthly Report</button>
+      <button class="btn ghost" id="clearAllData">Clear All Data (Items, Customers, Bills)</button>
+    </div>
+
+    <div class="box" id="reportResult">
+      <p class="muted">Daily or monthly sales report will appear here.</p>
+    </div>
+  </section>
+</div>
+
+<!-- Include html2pdf library for PDF saving via print-to-PDF -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+<script>
+/* ---------- Storage keys ---------- */
+const KEY_ITEMS = 'billing_items_v1';
+const KEY_CUSTOMERS = 'billing_customers_v1';
+const KEY_BILLS = 'billing_bills_v1';
+const KEY_LOGO = 'billing_logo_v1';
+
+/* ---------- initial state utilities ---------- */
+function load(key){ try { return JSON.parse(localStorage.getItem(key)||'[]'); } catch(e){ return []; } }
+function save(key,val){ localStorage.setItem(key, JSON.stringify(val)); }
+
+/* ---------- app data ---------- */
+let items = load(KEY_ITEMS);
+let customers = load(KEY_CUSTOMERS);
+let bills = load(KEY_BILLS);
+
+/* ---------- helpers ---------- */
+function uid(prefix='id'){ return prefix + '_' + Date.now() + '_' + Math.floor(Math.random()*9000+1000); }
+function currency(v){ return parseFloat(v||0).toFixed(2); }
+function formatDateISO(d = new Date()){ const z = n=> n.toString().padStart(2,'0'); return d.getFullYear() + '-' + z(d.getMonth()+1) + '-' + z(d.getDate()); }
+
+/* ---------- UI refs ---------- */
+const itemsTableBody = document.querySelector('#itemsTable tbody');
+const customersTableBody = document.querySelector('#customersTable tbody');
+const billCustomerSelect = document.getElementById('billCustomer');
+const billTableBody = document.querySelector('#billTable tbody');
+const subtotalInput = document.getElementById('subtotal');
+const discountInput = document.getElementById('discount');
+const netInput = document.getElementById('netAmount');
+const billNoInput = document.getElementById('billNo');
+const billDateInput = document.getElementById('billDate');
+const reportResult = document.getElementById('reportResult');
+const reportMonthSelect = document.getElementById('reportMonth');
+
+const shopNameEl = document.getElementById('shopName');
+const shopInfoEl = document.getElementById('shopInfo');
+const logoUploadBtn = document.getElementById('logoBtn');
+const logoFileInput = document.getElementById('logoUpload');
+const logoImg = document.getElementById('logoImg');
+const logoFallback = document.getElementById('logoFallback');
+
+/* ---------- initialize ---------- */
+function init(){
+  // fill month select (last 24 months)
+  const now = new Date();
+  for(let i=0;i<24;i++){
+    const d = new Date(now.getFullYear(), now.getMonth()-i, 1);
+    const code = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
+    const label = d.toLocaleString(undefined,{month:'long',year:'numeric'});
+    const o = document.createElement('option'); o.value=code; o.textContent=label;
+    reportMonthSelect.appendChild(o);
+  }
+
+  renderItems();
+  renderCustomers();
+  renderBillCustomerList();
+  setupTabs();
+  generateNewBillNo();
+  billDateInput.value = (new Date()).toLocaleDateString();
+  loadLogo();
+}
+init();
+
+/* ---------- Tabs ---------- */
+function setupTabs(){
+  document.querySelectorAll('.tab-btn').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+      document.getElementById(btn.dataset.target).classList.add('active');
+    });
+  });
+}
+
+/* ---------- ITEMS functions ---------- */
+function renderItems(filter=''){
+  itemsTableBody.innerHTML='';
+  const f = filter.trim().toLowerCase();
+  items.forEach((it, idx)=>{
+    if(f && !(it.name.toLowerCase().includes(f) || it.category.toLowerCase().includes(f))) return;
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${idx+1}</td>
+      <td>${escapeHtml(it.name)}</td>
+      <td>${escapeHtml(it.category)}</td>
+      <td class="right">${currency(it.price)}</td>
+      <td class="row-actions">
+        <button class="small" onclick="editItem('${it.id}')">Edit</button>
+        <button class="small" onclick="deleteItem('${it.id}')">Delete</button>
+      </td>`;
+    itemsTableBody.appendChild(tr);
+  });
+  // update bill items dropdowns
+  renderBillCustomerList(); // safe to call
+  // refresh any item selects in bill rows
+  refreshItemSelects();
+}
+
+document.getElementById('itemSearch').addEventListener('input', (e)=> renderItems(e.target.value));
+document.getElementById('addItemBtn').addEventListener('click', ()=> openItemModal());
+
+function openItemModal(editId){
+  const isEdit = !!editId;
+  const existing = items.find(i=>i.id===editId) || {name:'',category:'piece',price:''};
+  // simple prompt-based modal (keeps file in single HTML). For improved UI replace with custom modal.
+  const name = prompt((isEdit?'Edit':'Add') + ' Item - Name', existing.name);
+  if(name === null) return;
+  const category = prompt('Category (example: piece / 1kg / 500g / other)', existing.category || 'piece');
+  if(category === null) return;
+  const priceStr = prompt('Price (number)', existing.price || '0');
+  if(priceStr === null) return;
+  const price = parseFloat(priceStr) || 0;
+  if(isEdit){
+    existing.name = name.trim(); existing.category = category.trim(); existing.price = price;
+    save(KEY_ITEMS, items); renderItems();
+  } else {
+    items.push({id: uid('item'), name: name.trim(), category: category.trim(), price: price});
+    save(KEY_ITEMS, items); renderItems();
+  }
+}
+window.editItem = function(id){ openItemModal(id); }
+
+window.deleteItem = function(id){
+  if(!confirm('Delete this item?')) return;
+  items = items.filter(i=>i.id!==id);
+  save(KEY_ITEMS, items);
+  renderItems();
+}
+
+/* ---------- CUSTOMERS functions ---------- */
+function renderCustomers(filter=''){
+  customersTableBody.innerHTML='';
+  const f = filter.trim().toLowerCase();
+  customers.forEach((c, idx)=>{
+    if(f && !(c.name.toLowerCase().includes(f) || c.phone.toLowerCase().includes(f) || (c.shop||'').toLowerCase().includes(f))) return;
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${idx+1}</td>
+      <td>${escapeHtml(c.name)}</td>
+      <td>${escapeHtml(c.shop||'')}</td>
+      <td>${escapeHtml(c.phone||'')}</td>
+      <td>${escapeHtml(c.address||'')}</td>
+      <td class="right">${currency(c.totalReceived||0)}</td>
+      <td class="right">${currency(c.due||0)}</td>
+      <td class="row-actions">
+        <button class="small" onclick="editCustomer('${c.id}')">Edit</button>
+        <button class="small" onclick="deleteCustomer('${c.id}')">Delete</button>
+      </td>`;
+    customersTableBody.appendChild(tr);
+  });
+}
+document.getElementById('custSearch').addEventListener('input', (e)=> renderCustomers(e.target.value));
+document.getElementById('addCustBtn').addEventListener('click', ()=> openCustomerModal());
+
+function openCustomerModal(editId){
+  const isEdit = !!editId;
+  const existing = customers.find(c=>c.id===editId) || {name:'',shop:'',phone:'',address:'',totalReceived:0,due:0};
+  const name = prompt((isEdit?'Edit':'Add') + ' Customer - Name', existing.name);
+  if(name === null) return;
+  const shop = prompt('Shop name', existing.shop || '');
+  if(shop === null) return;
+  const phone = prompt('Phone', existing.phone || '');
+  if(phone === null) return;
+  const address = prompt('Address', existing.address || '');
+  if(address === null) return;
+  const tot = parseFloat(prompt('Total Received (number)', existing.totalReceived || 0) || 0);
+  const due = parseFloat(prompt('Due Amount (number)', existing.due || 0) || 0);
+  if(isEdit){
+    existing.name = name.trim();
+    existing.shop = shop.trim();
+    existing.phone = phone.trim();
+    existing.address = address.trim();
+    existing.totalReceived = tot;
+    existing.due = due;
+    save(KEY_CUSTOMERS, customers);
+    renderCustomers();
+  } else {
+    customers.push({id: uid('cust'), name: name.trim(), shop: shop.trim(), phone: phone.trim(), address: address.trim(), totalReceived: tot, due: due});
+    save(KEY_CUSTOMERS, customers); renderCustomers(); renderBillCustomerList();
+  }
+}
+window.editCustomer = function(id){ openCustomerModal(id); }
+
+window.deleteCustomer = function(id){
+  if(!confirm('Delete this customer?')) return;
+  customers = customers.filter(c=>c.id!==id);
+  save(KEY_CUSTOMERS, customers);
+  renderCustomers();
+  renderBillCustomerList();
+}
+
+/* ---------- BILL functions ---------- */
+function renderBillCustomerList(){
+  billCustomerSelect.innerHTML = '';
+  const emptyOption = document.createElement('option'); emptyOption.value=''; emptyOption.textContent='-- Select Customer --'; billCustomerSelect.appendChild(emptyOption);
+  customers.forEach(c=>{
+    const o = document.createElement('option'); o.value = c.id; o.textContent = `${c.name} — ${c.shop || ''} (${c.phone || ''})`; billCustomerSelect.appendChild(o);
+  });
+  // add "Walk-in" fallback
+  const walk = document.createElement('option'); walk.value='WALKIN'; walk.textContent='Walk-in Customer'; billCustomerSelect.appendChild(walk);
+}
+
+function generateNewBillNo(){
+  const now = new Date();
+  const code = 'B' + now.getFullYear().toString().slice(-2) + String(now.getMonth()+1).padStart(2,'0') + String(now.getDate()).padStart(2,'0') + '-' + String(now.getHours()).padStart(2,'0') + String(now.getMinutes()).padStart(2,'0') + '-' + Math.floor(Math.random()*900+100);
+  billNoInput.value = code;
+  billDateInput.value = (new Date()).toLocaleString();
+}
+
+document.getElementById('addBillRow').addEventListener('click', addBillRow);
+document.getElementById('discount').addEventListener('input', calculateTotals);
+document.getElementById('saveBill').addEventListener('click', saveBill);
+document.getElementById('printBill').addEventListener('click', printBill);
+document.getElementById('clearBill').addEventListener('click', clearBillForm);
+billCustomerSelect.addEventListener('change', (e)=> onCustomerSelected(e.target.value));
+
+function addBillRow(prefill={}){
+  const rowId = uid('row');
+  const tr = document.createElement('tr');
+  tr.dataset.rowId = rowId;
+  tr.innerHTML = `
+    <td class="num"></td>
+    <td>
+      <select class="input item-select"></select>
+    </td>
+    <td><input type="number" min="0" step="0.1" class="input qty" value="${prefill.qty||1}"></td>
+    <td><input type="number" min="0" step="0.01" class="input rate" value="${prefill.rate||0}"></td>
+    <td class="right line-total">${currency(prefill.qty * prefill.rate || 0)}</td>
+    <td class="row-actions">
+      <button class="small" onclick="deleteBillRow('${rowId}')">Delete</button>
+    </td>
+  `;
+  billTableBody.appendChild(tr);
+  populateItemSelect(tr.querySelector('.item-select'), prefill.itemId);
+  refreshBillRowNumbers();
+  attachRowListeners(tr);
+  calculateTotals();
+}
+
+function populateItemSelect(selectEl, preselectId){
+  selectEl.innerHTML = '';
+  const op = document.createElement('option'); op.value=''; op.textContent='-- Select Item --'; selectEl.appendChild(op);
+  items.forEach(it=>{
+    const o = document.createElement('option'); o.value = it.id; o.textContent = `${it.name} (${it.category}) — ₹${currency(it.price)}`;
+    if(it.id === preselectId) o.selected = true;
+    selectEl.appendChild(o);
+  });
+  selectEl.addEventListener('change', (e)=>{
+    const id = e.target.value;
+    const tr = e.target.closest('tr');
+    const rateInput = tr.querySelector('.rate');
+    if(!id){ rateInput.value = 0; updateLineTotal(tr); return; }
+    const it = items.find(x=>x.id===id);
+    if(it){ rateInput.value = it.price; updateLineTotal(tr); }
+  });
+}
+
+function refreshItemSelects(){
+  document.querySelectorAll('.item-select').forEach(sel=>{
+    const val = sel.value;
+    populateItemSelect(sel, val);
+  });
+}
+
+function attachRowListeners(tr){
+  tr.querySelector('.qty').addEventListener('input', ()=> updateLineTotal(tr));
+  tr.querySelector('.rate').addEventListener('input', ()=> updateLineTotal(tr));
+}
+
+function updateLineTotal(tr){
+  const qty = parseFloat(tr.querySelector('.qty').value || 0);
+  const rate = parseFloat(tr.querySelector('.rate').value || 0);
+  const total = qty * rate;
+  tr.querySelector('.line-total').textContent = currency(total);
+  calculateTotals();
+}
+
+window.deleteBillRow = function(rowId){
+  const tr = billTableBody.querySelector(`tr[data-row-id="${rowId}"]`);
+  if(tr){ tr.remove(); refreshBillRowNumbers(); calculateTotals(); }
+}
+
+function refreshBillRowNumbers(){
+  Array.from(billTableBody.querySelectorAll('tr')).forEach((tr, idx)=> tr.querySelector('.num').textContent = idx+1);
+}
+
+function calculateTotals(){
+  let sub = 0;
+  Array.from(billTableBody.querySelectorAll('tr')).forEach(tr=>{
+    const line = parseFloat(tr.querySelector('.line-total').textContent || 0) || 0;
+    sub += line;
+  });
+  subtotalInput.value = currency(sub);
+  const disc = parseFloat(discountInput.value || 0) || 0;
+  const net = Math.max(0, sub - disc);
+  netInput.value = currency(net);
+}
+
+/* on customer selected, auto-fill details (we show read-only info in top header shop info) */
+function onCustomerSelected(id){
+  if(!id) return;
+  if(id === 'WALKIN'){
+    // nothing to autofill, keep header unchanged
+    return;
+  }
+  const c = customers.find(x=>x.id===id);
+  if(!c) return;
+  // show in shopInfo temporarily (or you can show in dedicated fields)
+  // here we append details in a muted note for clarity
+  shopInfoEl.textContent = `Phone: ${c.phone || ''} • Addr: ${c.address || ''} • Customer: ${c.name}`;
+}
+
+/* Save bill */
+function saveBill(){
+  const custId = billCustomerSelect.value || 'WALKIN';
+  const billNo = billNoInput.value || uid('B');
+  const date = new Date().toISOString();
+  const rows = [];
+  Array.from(billTableBody.querySelectorAll('tr')).forEach(tr=>{
+    const itemId = tr.querySelector('.item-select').value;
+    const qty = parseFloat(tr.querySelector('.qty').value || 0) || 0;
+    const rate = parseFloat(tr.querySelector('.rate').value || 0) || 0;
+    const total = qty * rate;
+    if(qty <= 0 || rate <= 0 || !itemId) return; // skip incomplete rows
+    rows.push({itemId, qty, rate, total});
+  });
+  if(rows.length === 0){ alert('Add at least one bill row with valid item, qty and rate.'); return; }
+  const subtotal = parseFloat(subtotalInput.value || 0) || 0;
+  const discount = parseFloat(discountInput.value || 0) || 0;
+  const net = parseFloat(netInput.value || 0) || 0;
+  const bill = {id: uid('bill'), billNo, date, custId, rows, subtotal, discount, net, shopName: shopNameEl.textContent, shopInfo: shopInfoEl.textContent};
+  bills.push(bill);
+  save(KEY_BILLS, bills);
+  // update customer totals (increase totalReceived by net for simplicity)
+  if(custId !== 'WALKIN'){
+    const cust = customers.find(c=>c.id===custId);
+    if(cust){ cust.totalReceived = (parseFloat(cust.totalReceived||0) + net); cust.due = Math.max(0, (parseFloat(cust.due||0) - net)); save(KEY_CUSTOMERS, customers); renderCustomers(); }
+  }
+  alert('Bill saved.');
+  // keep bill data visible for printing
+  // reset
+  clearBillForm();
+  generateNewBillNo();
+}
+
+/* Print / Save PDF as A5 */
+function printBill(){
+  // prepare printable area
+  // Build a new window content for printing with A5 CSS and the bill preview
+  const selectedCustId = billCustomerSelect.value;
+  const cust = customers.find(c=>c.id===selectedCustId) || {name:'Walk-in', phone:'', address:''};
+  // build HTML
+  const shopHtml = `<div style="text-align:center">
+      ${logoImg.src ? `<img src="${logoImg.src}" style="max-width:120px;display:block;margin:0 auto 8px">` : ''}
+      <h2 style="margin:0">${escapeHtml(shopNameEl.textContent)}</h2>
+      <div style="margin:6px 0">${escapeHtml(shopInfoEl.textContent)}</div>
+      <hr>
+  </div>`;
+  // rows HTML
+  let rowsHtml = '';
+  Array.from(billTableBody.querySelectorAll('tr')).forEach((tr, idx)=>{
+    const itemId = tr.querySelector('.item-select').value;
+    if(!itemId) return;
+    const it = items.find(x=>x.id===itemId) || {name:'Unknown'};
+    const qty = parseFloat(tr.querySelector('.qty').value || 0) || 0;
+    const rate = parseFloat(tr.querySelector('.rate').value || 0) || 0;
+    const total = qty * rate;
+    rowsHtml += `<tr>
+      <td style="padding:6px;border:1px solid #ddd;">${idx+1}</td>
+      <td style="padding:6px;border:1px solid #ddd;">${escapeHtml(it.name)}</td>
+      <td style="padding:6px;border:1px solid #ddd;text-align:center">${qty}</td>
+      <td style="padding:6px;border:1px solid #ddd;text-align:right">₹${currency(rate)}</td>
+      <td style="padding:6px;border:1px solid #ddd;text-align:right">₹${currency(total)}</td>
+    </tr>`;
+  });
+
+  const html = `
+    <div id="printArea" style="font-family:Arial,Helvetica,sans-serif;max-width:520px;margin:0 auto;padding:6mm;">
+      ${shopHtml}
+      <div style="display:flex;justify-content:space-between;margin:8px 0">
+        <div>
+          <strong>Bill To:</strong><br>
+          ${escapeHtml(cust.name || '')}<br>
+          ${escapeHtml(cust.phone || '')}<br>
+          ${escapeHtml(cust.address || '')}
+        </div>
+        <div style="text-align:right">
+          <strong>Bill No:</strong> ${escapeHtml(billNoInput.value)}<br>
+          <strong>Date:</strong> ${new Date().toLocaleString()}
+        </div>
+      </div>
+
+      <table style="width:100%;border-collapse:collapse;margin-top:6px">
+        <thead>
+          <tr>
+            <th style="border:1px solid #ddd;padding:6px">#</th>
+            <th style="border:1px solid #ddd;padding:6px">Item</th>
+            <th style="border:1px solid #ddd;padding:6px;text-align:center">Qty</th>
+            <th style="border:1px solid #ddd;padding:6px;text-align:right">Rate</th>
+            <th style="border:1px solid #ddd;padding:6px;text-align:right">Total</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${rowsHtml}
+        </tbody>
+      </table>
+
+      <div style="margin-top:8px;display:flex;justify-content:flex-end">
+        <div style="width:220px">
+          <div style="display:flex;justify-content:space-between"><span>Subtotal</span><span>₹${escapeHtml(subtotalInput.value||'0')}</span></div>
+          <div style="display:flex;justify-content:space-between"><span>Discount</span><span>₹${escapeHtml(discountInput.value||'0')}</span></div>
+          <div style="display:flex;justify-content:space-between;font-weight:700"><span>Net Amount</span><span>₹${escapeHtml(netInput.value||'0')}</span></div>
+        </div>
+      </div>
+
+      <div style="text-align:center;margin-top:12px">
+        <div>Thank you for your purchase!</div>
+      </div>
+    </div>
+  `;
+
+  // Print using html2pdf for convenience — it will open Save as PDF dialog in most browsers
+  const opt = {
+    margin:       0,
+    filename:     `${billNoInput.value || 'bill'}.pdf`,
+    image:        { type: 'jpeg', quality: 0.98 },
+    html2canvas:  { scale: 2 },
+    jsPDF:        { unit: 'mm', format: 'a5', orientation: 'portrait' }
+  };
+  const element = document.createElement('div'); element.innerHTML = html;
+  html2pdf().set(opt).from(element).save();
+}
+
+/* Clear bill form */
+function clearBillForm(){
+  billTableBody.innerHTML = '';
+  addBillRow();
+  discountInput.value = 0;
+  subtotalInput.value = '0.00';
+  netInput.value = '0.00';
+  billCustomerSelect.value = '';
+  shopInfoEl.textContent = 'Phone: 0000000000 • Address: Your Address Here';
+}
+
+/* ---------- Reports ---------- */
+document.getElementById('reportDate').value = formatDateISO();
+document.getElementById('runDaily').addEventListener('click', runDailyReport);
+document.getElementById('runMonthly').addEventListener('click', runMonthlyReport);
+document.getElementById('clearAllData').addEventListener('click', clearAllData);
+
+function runDailyReport(){
+  const d = document.getElementById('reportDate').value;
+  if(!d) { alert('Pick a date'); return; }
+  const start = new Date(d + 'T00:00:00');
+  const end = new Date(d + 'T23:59:59');
+  const matched = bills.filter(b=>{
+    const bd = new Date(b.date);
+    return bd >= start && bd <= end;
+  });
+  renderReport(matched, `Daily Report - ${d}`);
+}
+
+function runMonthlyReport(){
+  const code = reportMonthSelect.value;
+  if(!code){ alert('Select month'); return; }
+  const [year, month] = code.split('-').map(Number);
+  const start = new Date(year, month-1, 1,0,0,0);
+  const end = new Date(year, month, 0,23,59,59);
+  const matched = bills.filter(b=>{
+    const bd = new Date(b.date);
+    return bd >= start && bd <= end;
+  });
+  renderReport(matched, `Monthly Report - ${reportMonthSelect.options[reportMonthSelect.selectedIndex].text}`);
+}
+
+function renderReport(list, title){
+  if(!list || list.length===0){
+    reportResult.innerHTML = `<p class="muted">No bills found for ${title}.</p>`;
+    return;
+  }
+  let total = 0;
+  let html = `<h3>${escapeHtml(title)}</h3><table style="width:100%;border-collapse:collapse"><thead><tr><th>#</th><th>Bill No</th><th>Date</th><th>Customer</th><th>Total</th></tr></thead><tbody>`;
+  list.forEach((b,i)=>{
+    const c = customers.find(x=>x.id===b.custId) || {name:'Walk-in'};
+    html += `<tr><td style="padding:6px;border:1px solid #ddd">${i+1}</td><td style="padding:6px;border:1px solid #ddd">${escapeHtml(b.billNo)}</td><td style="padding:6px;border:1px solid #ddd">${new Date(b.date).toLocaleString()}</td><td style="padding:6px;border:1px solid #ddd">${escapeHtml(c.name)}</td><td style="padding:6px;border:1px solid #ddd;text-align:right">₹${currency(b.net)}</td></tr>`;
+    total += parseFloat(b.net||0);
+  });
+  html += `</tbody></table><div style="text-align:right;margin-top:8px"><strong>Total Sales: ₹${currency(total)}</strong></div>`;
+  reportResult.innerHTML = html;
+}
+
+function clearAllData(){
+  if(!confirm('Clear ALL Items, Customers and Bills? This cannot be undone.')) return;
+  items = []; customers = []; bills = [];
+  save(KEY_ITEMS, items); save(KEY_CUSTOMERS, customers); save(KEY_BILLS, bills);
+  renderItems(); renderCustomers(); renderBillCustomerList(); reportResult.innerHTML = '<p class="muted">All data cleared.</p>';
+}
+
+/* ---------- logo upload ---------- */
+logoUploadBtn.addEventListener('click', ()=> logoFileInput.click());
+logoFileInput.addEventListener('change', (e)=>{
+  const f = e.target.files[0];
+  if(!f) return;
+  const reader = new FileReader();
+  reader.onload = (ev)=>{
+    const data = ev.target.result;
+    logoImg.src = data; logoImg.style.display='block'; logoFallback.style.display='none';
+    localStorage.setItem(KEY_LOGO, data);
+  };
+  reader.readAsDataURL(f);
+});
+
+function loadLogo(){
+  const data = localStorage.getItem(KEY_LOGO);
+  if(data){
+    logoImg.src = data; logoImg.style.display = 'block'; logoFallback.style.display='none';
+  } else {
+    logoImg.style.display = 'none'; logoFallback.style.display='block';
+  }
+}
+
+/* ---------- small utilities ---------- */
+function escapeHtml(s){ return (s||'').toString().replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;'); }
+
+/* ---------- simple persistence actions ---------- */
+document.getElementById('clearItems').addEventListener('click', ()=>{
+  if(!confirm('Clear all items?')) return;
+  items = []; save(KEY_ITEMS, items); renderItems();
+});
+document.getElementById('clearCustomers').addEventListener('click', ()=>{
+  if(!confirm('Clear all customers?')) return;
+  customers = []; save(KEY_CUSTOMERS, customers); renderCustomers(); renderBillCustomerList();
+});
+
+/* ---------- helper to auto add one bill row on load ---------- */
+clearBillForm();
+generateNewBillNo();
+
+/* End of script */
+</script>
+</body>
+</html>
